@@ -1,0 +1,89 @@
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="lib/c3/c3.min.css">
+	<script src="lib/pubnub/web/pubnub.min.js"></script>
+	<script src="lib/jscolor/jscolor.js"></script>
+	<link href='https://fonts.googleapis.com/css?family=Play' rel='stylesheet' type='text/css'>
+
+	<link rel="stylesheet" type="text/css" href="demos.css">
+</head>
+
+<body>
+
+<div class ="buttons">
+
+<h1>ASTERIA SLEEP</H1>
+<h2> Prototype</h2>
+
+ <button class="myButton" onclick="onClick()">Turn ON</button> 
+ <button class="myButton" onclick="offClick()">Turn OFF</button> 
+ 
+</div>
+
+<script>
+	// global variables - pubnub publisher and subscriber authentication keys
+	// *********** EDIT THIS *************
+	var g_pubKey = 'pub-c-1eccfaa1-4660-4970-909e-de5d1de5d939';
+	var g_subKey = 'sub-c-b70cc352-d4ab-11e5-b684-02ee2ddab7fe'; 
+	
+	// *********** EDIT THIS *************	
+
+	// global variable setting the pubnub channel name
+	// anyone listening on this channel (including ourselves) can see messages posted
+	// our chosen channel name has a randomised 'salt' so our channel is semi-private
+	var g_channel = "Asteria";
+	var g_lightlevel = 1;
+	var g_intervalId;
+	
+	
+	// set up the pubnub library
+	var pubnub = PUBNUB({
+		publish_key: g_pubKey, 
+		subscribe_key: g_subKey
+	});
+  
+	// -----
+	
+	function onClick() {
+		
+		g_intervalId = setInterval(
+		function()
+		{
+			g_lightlevel += 40;
+			g_lightlevel = Math.round(g_lightlevel);
+			
+			if ( g_lightlevel <= 255 )
+			{
+			console.log(g_lightlevel);
+			
+			pubnub.publish({
+			  channel: g_channel,
+			  message: [ g_lightlevel, 0, 0]
+			});
+			}
+			if (g_lightlevel > 255)
+			{
+				clearInterval(g_intervalId);
+			}
+		},
+		1000
+		); 
+	}
+	
+	function offClick() {
+	
+		clearInterval(g_intervalId);
+	
+		pubnub.publish({
+		  channel: g_channel,
+		  message: [ 0, 0, 0 ]
+		});	 
+	}
+	
+	
+	
+	
+</script>
+
+</body>
+</html>

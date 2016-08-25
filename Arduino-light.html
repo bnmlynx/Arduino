@@ -1,0 +1,145 @@
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="lib/c3/c3.min.css">
+	<script src="lib/pubnub/web/pubnub.min.js"></script>
+	<script src="lib/jscolor/jscolor.js"></script>
+	<link href='https://fonts.googleapis.com/css?family=Play' rel='stylesheet' type='text/css'>
+
+	<link rel="stylesheet" type="text/css" href="demos.css">
+</head>
+
+<body>
+
+<div class ="buttons">
+
+<h1>ASTERIA SLEEP</H1>
+<h2> Prototype</h2>
+
+ <button class="myButton" onclick="onClick()">Turn ON</button>
+ <button class="myButton" onclick="offClick()">Turn OFF</button>
+
+</div>
+
+<script>
+	// global variables - pubnub publisher and subscriber authentication keys
+	var g_pubKey = 'pub-c-1eccfaa1-4660-4970-909e-de5d1de5d939';
+	var g_subKey = 'sub-c-b70cc352-d4ab-11e5-b684-02ee2ddab7fe';
+
+
+	// global variable setting the pubnub channel name
+	// anyone listening on this channel (including ourselves) can see messages posted
+	// our chosen channel name has a randomised 'salt' so our channel is semi-private
+	var g_channel = "Asteria";
+
+	var g_lightlevel = 1;
+	var g_intervalId;
+
+
+	// set up the pubnub library
+	var pubnub = PUBNUB({
+		publish_key: g_pubKey,
+		subscribe_key: g_subKey
+	});
+
+	// -----
+
+	// put a limit on the rate our colour change value can be published to the network
+	var onChangeInput = throttle(publishColourValue, 500);
+
+	/**
+		throttle() is written by Remy Sharp
+		https://remysharp.com/2010/07/21/throttling-function-calls
+
+		By default it limits the rate any function we pass it is called to 250ms
+
+		- we use it here to avoid flooding the pubnub network with data
+	*/
+	function throttle(fn, threshhold, scope) {
+	  threshhold || (threshhold = 250);
+	  var last,
+		  deferTimer;
+	  return function () {
+		var context = scope || this;
+
+		var now = +new Date,
+			args = arguments;
+		if (last && now < last + threshhold) {
+		  // hold on to it
+		  clearTimeout(deferTimer);
+		  deferTimer = setTimeout(function () {
+			last = now;
+			fn.apply(context, args);
+		  }, threshhold);
+		} else {
+		  last = now;
+		  fn.apply(context, args);
+		}
+	  };
+	}
+
+	function onClick() {
+
+		pubnub.publish({
+		  channel: g_channel,
+		  message: [ 255, 0, 0]
+		});
+
+	}
+
+	function offClick() {
+		pubnub.publish({
+		  channel: g_channel,
+		  message: [ 0, 0, 0 ]
+		});
+	}
+
+	g_intervalId = setInterval(
+		function(){
+
+			g_lightlevel *= 1.5;
+			g_lightlevel = Math.round(g_lightlevel);
+
+			if ( g_lightlevel <= 255 )
+			{
+			console.log(g_lightlevel);
+
+			pubnub.publish({
+			  channel: g_channel,
+			  message: [ g_lightlevel, 0, 0]
+			});
+		}
+
+
+
+			if (g_lightlevel > 255)
+			{
+				clearInterval(g_intervalId);
+			}
+		},
+		1000
+);
+
+	/**
+				publishColourValue() will be called by throttle()
+		    it is used to tell the pubnub network what our colour value is
+	*/
+	function publishColourValue(elem) {
+		// elem here is the HTML5 element which has been changed
+		// elem.value is the colour value to transmit
+
+		console.log(elem.rgb);
+
+	/*
+		var red   = Math.round(elem.rgb[0]);
+		var green = Math.round(elem.rgb[1]);
+		var blue  = Math.round(elem.rgb[2]);
+	*/
+		pubnub.publish({
+		  channel: g_channel,
+		  message: [ red, green, blue ]
+		});
+	}
+</script>
+
+</body>
+</html>
